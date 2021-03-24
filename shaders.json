@@ -1,8 +1,73 @@
 {
  "userName": "avaer",
- "date": "2021-03-16T07:16:10.678Z",
- "numShaders": 42,
+ "date": "2021-03-24T03:04:24.384Z",
+ "numShaders": 49,
  "shaders": [
+  {
+   "ver": "0.1",
+   "info": {
+    "id": "sds3RX",
+    "date": "0",
+    "viewed": 0,
+    "name": "Fork 2D noise c avaer 185",
+    "description": "I just heard that you can make contour lines simply by feeding it to any periodic function.\nAlso, I was curious how it looks if we rotate gradient used for noise interpolation.",
+    "likes": 0,
+    "published": "Private",
+    "usePreview": 0,
+    "tags": [
+     "2d",
+     "noise"
+    ]
+   },
+   "renderpass": [
+    {
+     "inputs": [],
+     "outputs": [
+      {
+       "id": "4dfGRr",
+       "channel": 0
+      }
+     ],
+     "code": "float M_PI = 3.1415;\n\nfloat SCALE = 3.0;\nfloat NUM_OCTAVES = 2.0;\nfloat SCALE_TIME = 0.1;\n\nfloat SCALE_CONTOUR = 32.0;\nvec2 CLIP_RANGE = vec2(0.8, 1.0);\nvec3 COLOR1 = vec3(1.0, 0.0, 1.0);\nvec3 COLOR2 = vec3(0.0, 1.0, 1.0);\n\n// R -> [0, 1)\nfloat hash11(float t) {\n  return fract(sin(t * 56789.0) * 56789.0);\n}\n\n// R^2 -> [0, 1)\nfloat hash21(vec2 uv) {\n  return hash11(hash11(uv[0]) + 2.0 * hash11(uv[1]));\n}\n\nvec2 hashGradient2(vec2 uv) {\n  float t = hash21(uv);\n  return vec2(cos(2.0 * M_PI * t), sin(2.0 * M_PI * t));\n}\n\nfloat mix2(float f00, float f10, float f01, float f11, vec2 uv) {\n  return mix(mix(f00, f10, uv[0]), mix(f01, f11, uv[0]), uv[1]);\n}\n\nvec2 rotate2(vec2 uv, float r) {\n  mat2 R = mat2(\n    cos(r), sin(r),\n   -sin(r), cos(r)\n  );\n  return R * uv;\n}\n\n// R^2 -> [0, 1)\n// support additional argument to rotate gradient\nfloat gradientNoise(vec2 uv, float r) {\n  vec2 uvi = floor(uv);\n  vec2 uvf = uv - uvi;\n  vec2 g00 = rotate2(hashGradient2(uvi + vec2(0.0, 0.0)), r);\n  vec2 g10 = rotate2(hashGradient2(uvi + vec2(1.0, 0.0)), r);\n  vec2 g01 = rotate2(hashGradient2(uvi + vec2(0.0, 1.0)), r);\n  vec2 g11 = rotate2(hashGradient2(uvi + vec2(1.0, 1.0)), r);\n  float f00 = dot(g00, uvf - vec2(0.0, 0.0));\n  float f10 = dot(g10, uvf - vec2(1.0, 0.0));\n  float f01 = dot(g01, uvf - vec2(0.0, 1.0));\n  float f11 = dot(g11, uvf - vec2(1.0, 1.0));\n  float t = mix2(f00, f10, f01, f11, smoothstep(vec2(0.0), vec2(1.0), uvf));\n\n  // Normalize via upper/lower bound = +- 1 / sqrt(2) ~ 0.7\n  return (t / 0.7 + 1.0) * 0.5;\n}\n\nfloat noise(vec2 uv, float r) {\n  float result = 0.0;\n  for (float i = 0.0; i < NUM_OCTAVES; i++) {\n    float p = pow(2.0, i);\n    result += (gradientNoise(uv * p, r) / p);\n  }\n  result /= (pow(2.0, NUM_OCTAVES) - 1.0) / (pow(2.0, NUM_OCTAVES - 1.0));\n  return result;\n}\n\nfloat wave(float t) {\n  return 0.5 * (1.0 - cos(SCALE_CONTOUR * M_PI * t));\n}\n\nvoid mainImage(out vec4 frag_color, vec2 frag_coord) {\n  vec2 uv =  SCALE * frag_coord / iResolution.y;\n\n  float noise_fac = noise(uv, SCALE_TIME * 2.0 * M_PI * iTime);\n  float contour_fac = wave(noise_fac);\n  float clip = smoothstep(CLIP_RANGE[0], CLIP_RANGE[1], contour_fac);\n  vec3 color = mix(COLOR1, COLOR2, noise_fac);\n\n  frag_color = vec4(color * clip, 1.0);\n}\n",
+     "name": "Image",
+     "description": "",
+     "type": "image"
+    }
+   ]
+  },
+  {
+   "ver": "0.1",
+   "info": {
+    "id": "ssf3z2",
+    "date": "0",
+    "viewed": 0,
+    "name": "Fork Castle in  avaer 787",
+    "description": "I've tried to recreate the famous flying castle using raymarching ~",
+    "likes": 0,
+    "published": "Private",
+    "usePreview": 0,
+    "tags": [
+     "raymarching",
+     "raymarch",
+     "anime"
+    ]
+   },
+   "renderpass": [
+    {
+     "inputs": [],
+     "outputs": [
+      {
+       "id": "4dfGRr",
+       "channel": 0
+      }
+     ],
+     "code": "float t;\nfloat aa;\n\nmat2 rot(float a) { float c = cos(a), s = sin(a); return mat2(c,s,-s,c);}\nfloat rand(vec2 st){ return fract(sin(dot(st.xy,vec2(12.9898,78.233)))*43758.585); }\n\n// 2D Primitives\nfloat sq(vec2 p, vec2 s, float r) { return length(max(abs(p) - s,0.)) - r;}\n\n// df operations\nfloat ext(float d, vec3 p, float h) {\n    vec2 w = vec2(d,abs(p.z) - h);\n    return min(max(w.x,w.y),0.) + length(max(w,0.));\n}\nfloat smoothunion( float d1, float d2, float k ) {\n    float h = clamp( 0.5 + 0.5*(d2-d1)/k, 0.0, 1.0 );\n    return mix( d2, d1, h ) - k*h*(1.0-h);\n}\n\n// 3D Primitives\nfloat sph(vec3 p, float s) { return length(p) - s; }\nfloat box(vec3 p, vec3 s, float r) { return length(max(abs(p) - s,0.)) - r;}\nfloat cyl2( vec3 p, float h, float r ) {\n    vec2 d = abs(vec2(length(p.xz),p.y)) - vec2(h,r);\n    return max(length(max(abs(p.y) - h,0.)) - .01, length(p.xz) - r) - .01;\n}\nfloat hollowcyl( vec3 p, float h, float r ) {\n    vec2 d = abs(vec2(length(p.xz),p.y)) - vec2(h,r);\n    return max(length(max(abs(p.y) - h,0.)) - .01, abs(length(p.xz) - r) - .0) - .01;\n}\nfloat door(vec3 p, float s) {\n    p *= s;\n    float d2d = sq(p.xy,vec2(-.05,.515),.3);\n    float d = ext(d2d,p,.2);\n    return d/s;\n}\nfloat doors1(vec3 p, float s) {\n    p *= s;\n    float d = max(box(p,vec3(.9,1.,.15),.01),-door(p - vec3(0.,-1.3,(-0.525)),.4));\n    p.x = abs(p.x);\n    d = max(d,-door(p - vec3(0.3,-.5,(-0.1)),1.2));\n    d = max(d,-box(p - vec3(0.3,-0.15,0.),vec3(.04,.08,.2),.001));\n    d = max(d,-box(p - vec3(0.,0.35,0.),vec3(.04,.08,.2),.001));\n    return d/s;\n}\nfloat towers1(vec3 p) {\n    p.x -= .65;\n    float d = hollowcyl(p,.51,.2) - .004*step(0.5,fract(1.5*p.y));\n    vec3 p1 = p; p1.x = abs(p.x) - .02; p1.z += .1;\n    d = max(d,-box(p1,vec3(.005,.02,5.),.001));\n    d = max(d,-box(p1 + vec3(0.,.325,0.),vec3(.005,.02,5.),.001));\n    d = max(d,-box(p1 - vec3(0.,.325,0.),vec3(.005,.02,5.),.001));\n    p.y -= .5;\n    d = smoothunion(d,sph(p,.19),.02);\n    return d;\n}\n\nfloat towersAndDoors(vec3 p, float s) {\n    p *= s;\n    p.x = abs(p.x) - .375;\n    float d1 = doors1(p*vec3(1.,1.,-1.),1.992);\n    float d2 = towers1(p);\n    float d = min(d1,d2);\n    return ((d - .005*smoothstep(0.45,0.455,p.y)) + .0001*rand(floor(p.xy*vec2(.75,1.)*180.)))/s;\n}\n\nfloat buildings(vec3 p, float s) {\n    float a = atan(p.x,p.z);\n    float l = length(p.xz);\n    vec3 rP = vec3(fract(a*3.03*s) - .5,fract(p.y*13.) - .5,l);\n    float d = cyl2(p, .38,.2*s);\n    d = max(d,-box(rP,vec3(.075,.15,10.),.001));\n    d = min(d,sph((p - vec3(0.,0.4,0.))*vec3(1.,1.2,1.),.210*s));\n    return d;\n}\n\nfloat df(vec3 p) {\n    p.zy *= rot(cos(t*.2)*0. + 3.14*.25*.0 - .2);\n    p.xz *= rot(t*.05);\n    \n    float a = atan(p.x,p.z);\n    float l = length(p.xz);\n    vec3 rP = vec3(fract(a*3.024) - .5,p.y,l - 2.5);\n    vec3 rPfloor = vec3(floor(a*3.024) - .5,p.y,l - 2.5);\n    vec3 rPnorm = vec3(a,p.y,l - 2.5);\n    vec3 rP1 = vec3(fract((a + .2)*2.7058) - .5,p.y - .5,l - 2.2);\n    vec3 rP2 = vec3(fract((a + .3)*2.285) - .5,p.y - 1.,l - 1.9);\n    \n    // 3 walls\n    float d = 10e9;\n    d = towersAndDoors(rP,2.065);\n    d = max(d, -rP.y - (.25 - .01*rand(floor(rP.xz*150.)) - .04*rand(floor(rP.xz*20. + rPfloor.xz*20.)) + .02 ));\n    d = min(d, towersAndDoors(rP1,2.065));\n    d = min(d, towersAndDoors(rP2,2.065));\n    \n    // \"grid\" structure below\n    float div = .35;\n    vec3 pp; pp.y = rP.y; pp.xz = mod(rP.xz,div) - div*.5;\n    float dGrid = max(box(pp,vec3(.2,.17 - .1*rand(floor(rP.xz*5.)),.2),.01), -box(pp,vec3(.15,1.,.15),.01));\n    dGrid = max(dGrid,sph(p,2.45));\n    d = min(d,dGrid);\n    \n    // main sphere\n    vec3 pSph = p;\n    pSph.y += .18;\n    d = min(d,max(sph(pSph,1.6 - .025*rand(floor(rPnorm.xz*4.))),pSph.y - 0.44));\n    \n    // buildings\n    p.y -= .25;\n    vec3 rP3 = vec3(fract(a*1.1) - .5,p.y - 1.,l - 1.2);\n    p.y -= .1;\n    vec3 rP4 = vec3(fract((a*1.6 + 1.)*.25)*2. - .5,p.y - 1.,l - .8);\n    vec3 rP5 = vec3(fract((a*.7 + 0.)) - .5,p.y - 1.,l - .7);\n    p.y -= .1;\n    vec3 rP6 = vec3(fract(a*.5) - .5,p.y - 1.,l - .5);\n    d = min(d,buildings(rP3,.4));\n    d = min(d,buildings(rP4,1.5));\n    d = min(d,buildings(rP5,.8));\n    d = min(d,buildings(rP6,.6));\n    \n    // huge tree\n    float varTree = 12. + cos(t*.1);\n    p.y += pow(length(p.xz)*.51,4.);\n    d = min(d, sph((p - vec3(0.,1.9,0.))*vec3(1.,2.,1.) + fract(cos(p.x*varTree) + sin(p.y*varTree) + sin(p.y*varTree))*.032,1.25));\n    \n    return d;\n}\n\n#define E .001\nvec3 normal(vec3 p) {\n    vec2 u = vec2(0.,E); float d = df(p);\n    return normalize(vec3(df(p + u.yxx),df(p + u.xyx),df(p + u.xxy)) - d);\n}\n\n#define MAX_D 60.\n#define MIN_D 40.\n#define MAX_STEP 30\n#define EDP aa*10.\n#define LIM .001\nvec3 rm(vec3 cam, vec3 rayDir) {\n    vec3 c = vec3(0.245,0.493,0.880) - rayDir.y*2.;\n    vec3 pInit = cam + rayDir*MIN_D;\n    vec3 p = pInit;\n    float prevD = 10e9;\n    for(int i = 0; i < MAX_STEP; i++) {\n        float d = df(p);\n        if(prevD < EDP && d > prevD) return c;\n        if(d < LIM) {\n            float dist = clamp(pow(distance(p,pInit)*.1,12.),0.,1.);\n            vec3 n = normal(p);\n            vec3 light = normalize(vec3(-1.095,1.204,-1.006));\n            float lInf = clamp(dot(n,light),0.,1.);\n            vec3 c1 = vec3(0.274,0.445,0.840)*dist*2. + vec3(0.605,0.581,0.080)*smoothstep(0.5-aa,.5+aa,lInf)-n;\n            c = mix(c1,c,dist*.75);\n            return c+.2;\n        }\n        if(distance(pInit,p) > MAX_D) return c;\n        p += d*rayDir;\n        prevD = min(prevD,d);\n    }\n    return c;\n}\n\nvoid mainImage( out vec4 fragColor, in vec2 fragCoord ) {\n    vec2 uv = fragCoord.xy/iResolution.xy - .5;\n    uv.x *= iResolution.x/iResolution.y;\n    \n    t = iTime;\n\taa = 1./iResolution.x;\n\n    vec3 c = vec3(0.,.55,-50.);\n    vec3 r = normalize(vec3(uv,9.));\n    vec3 col = rm(c,r);\n\n    fragColor = vec4(col,1.0);\n}",
+     "name": "Image",
+     "description": "",
+     "type": "image"
+    }
+   ]
+  },
   {
    "ver": "0.1",
    "info": {
@@ -503,6 +568,173 @@
   {
    "ver": "0.1",
    "info": {
+    "id": "7sl3RX",
+    "date": "0",
+    "viewed": 0,
+    "name": "Fork Reintegrat avaer 171",
+    "description": "Visualizing how the particle distributions are updated every frame in close up\nhttps://michaelmoroz.github.io/Reintegration-Tracking",
+    "likes": 0,
+    "published": "Private",
+    "usePreview": 0,
+    "tags": [
+     "particles",
+     "ca"
+    ]
+   },
+   "renderpass": [
+    {
+     "inputs": [
+      {
+       "id": "4dXGR8",
+       "filepath": "/media/previz/buffer00.png",
+       "type": "buffer",
+       "channel": 0,
+       "sampler": {
+        "filter": "linear",
+        "wrap": "clamp",
+        "vflip": "true",
+        "srgb": "false",
+        "internal": "byte"
+       },
+       "published": 1
+      },
+      {
+       "id": "XsXGR8",
+       "filepath": "/media/previz/buffer01.png",
+       "type": "buffer",
+       "channel": 2,
+       "sampler": {
+        "filter": "linear",
+        "wrap": "clamp",
+        "vflip": "true",
+        "srgb": "false",
+        "internal": "byte"
+       },
+       "published": 1
+      },
+      {
+       "id": "4sXGR8",
+       "filepath": "/media/previz/buffer02.png",
+       "type": "buffer",
+       "channel": 1,
+       "sampler": {
+        "filter": "linear",
+        "wrap": "clamp",
+        "vflip": "true",
+        "srgb": "false",
+        "internal": "byte"
+       },
+       "published": 1
+      }
+     ],
+     "outputs": [
+      {
+       "id": "4dfGRr",
+       "channel": 0
+      }
+     ],
+     "code": "// Fork of \"Paint streams\" by michael0884. https://shadertoy.com/view/WtfyDj\n// 2020-08-31 20:06:54\n\nvec3 hsv2rgb( in vec3 c )\n{\n    vec3 rgb = clamp( abs(mod(c.x*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0, 0.0, 1.0 );\n\n\trgb = rgb*rgb*(3.0-2.0*rgb); // cubic smoothing\t\n\n\treturn c.z * mix( vec3(1.0), rgb, c.y);\n}\n\nvec3 mixN(vec3 a, vec3 b, float k)\n{\n    return sqrt(mix(a*a, b*b, clamp(k,0.,1.)));\n}\n\nvec4 V(vec2 p)\n{\n    return pixel(ch1, p);\n}\n\nvoid mainImage( out vec4 col, in vec2 pos )\n{\n\tR = iResolution.xy; time = iTime;\n    pos = R*0.495 + pos*0.03; //zoom in\n    ivec2 p = ivec2(pos + 0.5);\n    \n    float rho = 0.; float varr = 0.;\n    range(i, -1, 1) range(j, -1, 1)\n    {\n        vec2 ij = vec2(i,j);\n        vec4 data = texel(ch0, vec2(p) + ij);\n        particle P0 = getParticle(data, vec2(p) + ij);\n        rho += P0.M.x*smoothstep(0.1, 0.09, distance(pos,P0.X)); \n    \tfloat rad = dif/2.;\n        varr += P0.M.x*smoothstep(0.03, 0.01, sdArrow(pos, P0.X, P0.X+20.*P0.V));\n        varr += P0.M.x*smoothstep(0.03, 0.01, sdBox(pos - P0.X - P0.V*dt, vec2(rad)));\n    }\n    \n    float sdgrid = sdBox(mod(pos + 0.5, vec2(1.0)), vec2(1.0));\n   \n    vec3 particles = vec3(0.2)*(rho + varr);\n    vec3 cellcol = vec3(1.);\n   \tvec3 grid = cellcol*smoothstep(0.0, -0.1, sdgrid);\n    // Output to screen\n    col.xyz = grid - particles;\n    col.xyz = col.xyz;\n}",
+     "name": "Image",
+     "description": "",
+     "type": "image"
+    },
+    {
+     "inputs": [],
+     "outputs": [],
+     "code": "#define Bf(p) mod(p,R)\n#define Bi(p) ivec2(mod(p,R))\n#define texel(a, p) texelFetch(a, Bi(p), 0)\n#define pixel(a, p) texture(a, Bf(p)/R)\n#define ch0 iChannel0\n#define ch1 iChannel1\n#define ch2 iChannel2\n#define ch3 iChannel3\n\n#define PI 3.14159265\n\n#define loop(i,x) for(int i = 0; i < x; i++)\n#define range(i,a,b) for(int i = a; i <= b; i++)\n\n#define dt 1.0\n\n//diffusion diameter\n// 0 - completely particle like\n// >1.0 - field-like\n#define dif 0.75\n\n#define border_h 5.\nvec2 R;\nvec4 Mouse;\nfloat time;\n\n#define mass 1.\n\n#define fluid_rho 0.5\n\n\nfloat Pf(vec2 rho)\n{\n    //return 0.2*rho.x; //gas\n    float GF = 1.;//smoothstep(0.49, 0.5, 1. - rho.y);\n    return mix(0.5*rho.x,0.04*rho.x*(rho.x/fluid_rho - 1.), GF); //water pressure\n}\n\nmat2 Rot(float ang)\n{\n    return mat2(cos(ang), -sin(ang), sin(ang), cos(ang)); \n}\n\nvec2 Dir(float ang)\n{\n    return vec2(cos(ang), sin(ang));\n}\n\n\nfloat sdBox( in vec2 p, in vec2 b )\n{\n    vec2 d = abs(p)-b;\n    return length(max(d,0.0)) + min(max(d.x,d.y),0.0);\n}\n\n\nfloat sdCircle( vec2 p, float r )\n{\n    return length(p) - r;\n}\n\nfloat sdSegment( in vec2 p, in vec2 a, in vec2 b )\n{\n    vec2 pa = p-a, ba = b-a;\n    float h = clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 );\n    return length( pa - ba*h );\n}\n\nfloat sdArrow( in vec2 p, in vec2 a, in vec2 b )\n{\n    float sdl = sdSegment(p,a,b);\n    vec2 delta = normalize(b-a);\n    sdl = min(sdl, sdSegment(p,b,b-delta*0.05 + 0.05*delta.yx*vec2(-1,1)));\n    sdl = min(sdl, sdSegment(p,b,b-delta*0.05 - 0.05*delta.yx*vec2(-1,1)));\n    return sdl;\n}\n\nfloat border(vec2 p)\n{\n    float bound = -sdBox(p - R*0.5, R*vec2(0.5, 0.5)); \n    float box = sdBox(Rot(0.*time)*(p - R*vec2(0.5, 0.6)) , R*vec2(0.05, 0.01));\n    float drain = -sdBox(p - R*vec2(0.5, 0.7), R*vec2(1.5, 0.5));\n    return max(drain,min(bound, box));\n}\n\n#define h 1.\nvec3 bN(vec2 p)\n{\n    vec3 dx = vec3(-h,0,h);\n    vec4 idx = vec4(-1./h, 0., 1./h, 0.25);\n    vec3 r = idx.zyw*border(p + dx.zy)\n           + idx.xyw*border(p + dx.xy)\n           + idx.yzw*border(p + dx.yz)\n           + idx.yxw*border(p + dx.yx);\n    return vec3(normalize(r.xy), r.z + 1e-4);\n}\n\nvec2 decode(float x)\n{\n    uint X = floatBitsToUint(x);\n    return unpackSnorm2x16(X); \n}\n\nfloat encode(vec2 x)\n{\n    uint X = packSnorm2x16(clamp(x, vec2(-1.), vec2(1.)));\n    return uintBitsToFloat(X); \n}\n\nstruct particle\n{\n    vec2 X;\n    vec2 V;\n    vec2 M;\n};\n    \nparticle getParticle(vec4 data, vec2 pos)\n{\n    particle P; \n    P.X = decode(data.x) + pos;\n    P.V = decode(data.y);\n    P.M = data.zw;\n    return P;\n}\n\nvec4 saveParticle(particle P, vec2 pos)\n{\n    P.X = clamp(P.X - pos, vec2(-0.5), vec2(0.5));\n    return vec4(encode(P.X), encode(P.V), P.M);\n}\n\nvec3 hash32(vec2 p)\n{\n\tvec3 p3 = fract(vec3(p.xyx) * vec3(.1031, .1030, .0973));\n    p3 += dot(p3, p3.yxz+33.33);\n    return fract((p3.xxy+p3.yzz)*p3.zyx);\n}\n\nfloat G(vec2 x)\n{\n    return exp(-dot(x,x));\n}\n\nfloat G0(vec2 x)\n{\n    return exp(-length(x));\n}\n\n\nvec3 distribution(vec2 x, vec2 p, float K)\n{\n    vec4 aabb0 = vec4(p - 0.5, p + 0.5);\n    vec4 aabb1 = vec4(x - K*0.5, x + K*0.5);\n    vec4 aabbX = vec4(max(aabb0.xy, aabb1.xy), min(aabb0.zw, aabb1.zw));\n    vec2 center = 0.5*(aabbX.xy + aabbX.zw); //center of mass\n    vec2 size = max(aabbX.zw - aabbX.xy, 0.); //only positive\n    float m = size.x*size.y/(K*K); //relative amount\n    //if any of the dimensions are 0 then the mass is 0\n    return vec3(center, m);\n}\n\n//diffusion and advection basically\nvoid Reintegration(sampler2D ch, inout particle P, vec2 pos)\n{\n    //basically integral over all updated neighbor distributions\n    //that fall inside of this pixel\n    //this makes the tracking conservative\n    range(i, -2, 2) range(j, -2, 2)\n    {\n        vec2 tpos = pos + vec2(i,j);\n        vec4 data = texel(ch, tpos);\n       \n        particle P0 = getParticle(data, tpos);\n       \n        P0.X += P0.V*dt; //integrate position\n\n        float difR = dif;\n        vec3 D = distribution(P0.X, pos, difR);\n        //the deposited mass into this cell\n        float m = P0.M.x*D.z;\n        \n        //add weighted by mass\n        P.X += D.xy*m;\n        P.V += P0.V*m;\n        P.M.y += P0.M.y*m;\n        \n        //add mass\n        P.M.x += m;\n    }\n    \n    //normalization\n    if(P.M.x != 0.)\n    {\n        P.X /= P.M.x;\n        P.V /= P.M.x;\n        P.M.y /= P.M.x;\n    }\n}\n\n//force calculation and integration\nvoid Simulation(sampler2D ch, inout particle P, vec2 pos)\n{\n    //Compute the SPH force\n    vec2 F = vec2(0.);\n    vec3 avgV = vec3(0.);\n    range(i, -2, 2) range(j, -2, 2)\n    {\n        vec2 tpos = pos + vec2(i,j);\n        vec4 data = texel(ch, tpos);\n        particle P0 = getParticle(data, tpos);\n        vec2 dx = P0.X - P.X;\n        float avgP = 0.5*P0.M.x*(Pf(P.M) + Pf(P0.M)); \n        F -= 0.5*G(1.*dx)*avgP*dx;\n        avgV += P0.M.x*G(1.*dx)*vec3(P0.V,1.);\n    }\n    avgV.xy /= avgV.z;\n\n    //viscosity\n    F += 0.*P.M.x*(avgV.xy - P.V);\n\n    if(Mouse.z > 0.)\n    {\n        vec2 dm =(Mouse.xy - Mouse.zw)/10.; \n        float d = distance(Mouse.xy, P.X)/20.;\n        F += 0.001*dm*exp(-d*d);\n       // P.M.y += 0.1*exp(-40.*d*d);\n    }\n    \n    //integrate\n    P.V += F*dt/P.M.x;\n\n    //border \n    vec3 N = bN(P.X);\n    float vdotN = step(N.z, border_h)*dot(-N.xy, P.V);\n    P.V += 0.5*(N.xy*vdotN + N.xy*abs(vdotN));\n    P.V += 0.*P.M.x*N.xy*step(abs(N.z), border_h)*exp(-N.z);\n    \n    if(N.z < 0.) P.V = vec2(0.);\n    \n    \n    //velocity limit\n    float v = length(P.V);\n    P.V /= (v > 1.)?v:1.;\n}\n\n\n",
+     "name": "Common",
+     "description": "",
+     "type": "common"
+    },
+    {
+     "inputs": [
+      {
+       "id": "XsXGR8",
+       "filepath": "/media/previz/buffer01.png",
+       "type": "buffer",
+       "channel": 0,
+       "sampler": {
+        "filter": "linear",
+        "wrap": "clamp",
+        "vflip": "true",
+        "srgb": "false",
+        "internal": "byte"
+       },
+       "published": 1
+      }
+     ],
+     "outputs": [
+      {
+       "id": "4dXGR8",
+       "channel": 0
+      }
+     ],
+     "code": "\nvoid mainImage( out vec4 U, in vec2 pos )\n{\n    R = iResolution.xy; time = iTime; Mouse = iMouse;\n    ivec2 p = ivec2(pos);\n\n    vec4 data = texel(ch0, pos); \n    \n    particle P;// = getParticle(data, pos);\n       \n    if(iFrame%2 == 0)\n   \t\tReintegration(ch0, P, pos);\n   \telse\n        P = getParticle(data, pos);\n    //initial condition\n    if(iFrame < 1)\n    {\n        //random\n        vec3 rand = hash32(pos + vec2(0., 1.0)+0.28);\n        if(rand.z < 0.6) \n        {\n            P.X = pos + 0.3*(rand.yz-0.5);\n            P.V = 0.65*(rand.xy-0.5) + vec2(0., 0.);\n            P.M = vec2(mass, 0.);\n        }\n        else\n        {\n            P.X = pos;\n            P.V = vec2(0.);\n            P.M = vec2(1e-6);\n        }\n    }\n    \n    U = saveParticle(P, pos);\n}",
+     "name": "Buffer A",
+     "description": "",
+     "type": "buffer"
+    },
+    {
+     "inputs": [
+      {
+       "id": "4dXGR8",
+       "filepath": "/media/previz/buffer00.png",
+       "type": "buffer",
+       "channel": 0,
+       "sampler": {
+        "filter": "linear",
+        "wrap": "clamp",
+        "vflip": "true",
+        "srgb": "false",
+        "internal": "byte"
+       },
+       "published": 1
+      }
+     ],
+     "outputs": [
+      {
+       "id": "XsXGR8",
+       "channel": 0
+      }
+     ],
+     "code": "void mainImage( out vec4 U, in vec2 pos )\n{\n    R = iResolution.xy; time = iTime; Mouse = iMouse;\n    ivec2 p = ivec2(pos);\n        \n    vec4 data = texel(ch0, pos); \n    \n    particle P = getParticle(data, pos);\n    \n    if(iFrame%2 == 0)\n    if(P.M.x != 0.) //not vacuum\n    {\n        //Simulation(ch0, P, pos);\n    }\n\n    U = saveParticle(P, pos);\n}",
+     "name": "Buffer B",
+     "description": "",
+     "type": "buffer"
+    },
+    {
+     "inputs": [
+      {
+       "id": "4dXGR8",
+       "filepath": "/media/previz/buffer00.png",
+       "type": "buffer",
+       "channel": 0,
+       "sampler": {
+        "filter": "linear",
+        "wrap": "clamp",
+        "vflip": "true",
+        "srgb": "false",
+        "internal": "byte"
+       },
+       "published": 1
+      }
+     ],
+     "outputs": [
+      {
+       "id": "4sXGR8",
+       "channel": 0
+      }
+     ],
+     "code": "//density\n\nvoid mainImage( out vec4 fragColor, in vec2 pos )\n{\n    R = iResolution.xy; time = iTime;\n    ivec2 p = ivec2(pos);\n\n    vec4 data = texel(ch0, pos);\n    particle P = getParticle(data, pos);\n    \n    //particle render\n    vec4 rho = vec4(0.);\n    range(i, -1, 1) range(j, -1, 1)\n    {\n        vec2 ij = vec2(i,j);\n        vec4 data = texel(ch0, pos + ij);\n        particle P0 = getParticle(data, pos + ij);\n\n        vec2 x0 = P0.X; //update position\n        //how much mass falls into this pixel\n        rho += 1.*vec4(P.V, P.M)*G((pos - x0)/0.75); \n    }\n    \n    fragColor = rho;\n}",
+     "name": "Buffer C",
+     "description": "",
+     "type": "buffer"
+    }
+   ]
+  },
+  {
+   "ver": "0.1",
+   "info": {
     "id": "ssl3R7",
     "date": "0",
     "viewed": 0,
@@ -596,6 +828,32 @@
       }
      ],
      "code": "// #define FADES  1\n\n// 2D Random\nfloat random (in vec2 st) { \n    return fract(sin(dot(st.xy,vec2(12.9898,78.233))) * 43758.5453123);\n}\n\n// 2D Noise based on Morgan McGuire @morgan3d\n// https://www.shadertoy.com/view/4dS3Wd\nfloat noise (in vec2 st) {\n    vec2 i = floor(st);\n    vec2 f = fract(st);\n    float a = random(i);\n    float b = random(i + vec2(1.0, 0.0));\n    float c = random(i + vec2(0.0, 1.0));\n    float d = random(i + vec2(1.0, 1.0));\n    vec2 u = f*f*(3.0-2.0*f);\n    return mix(a, b, u.x) + \n            (c - a)* u.y * (1.0 - u.x) + \n            (d - b) * u.x * u.y;\n}\n\n\nvoid mainImage( out vec4 fragColor, in vec2 fragCoord )\n{\n    float time = iTime * 0.2;\t\t\t\t\t\t\t\t\t// adjust time\n    vec2 uv = (2. * fragCoord - iResolution.xy) / iResolution.y;\t// center coordinates\n    float rowThickness = uv.y * 20.;\t\t\t\t\t\t\t\t// break y lines up\n    float rowIndex = floor(rowThickness);\t\t\t\t\t\t\t// break y lines up & get current index\n    float lineProgress = rowThickness - rowIndex;\t\t\t\t\t// get line progress 0-1\n    float dashLength = noise(vec2(time + rowIndex * 4., 1.)); \t\t// each line gets a random dash length\n    uv *= vec2(dashLength * 7., 1.);\t\t\t\t\t\t\t\t// calc dash lengths by multiplying x\n    float timeAdd = (mod(rowIndex, 2.) == 0.) ? time : -time;\t\t// move x in different directions\n    timeAdd *= 5.1;\t\t\t\t\t\t\t\t\t\t\t\t\t// increase x movement\n    float xOffset = rowIndex / 3.;\t\t\t\t\t\t\t\t\t// give lines x offset so they don't line up\n    uv += vec2(timeAdd + dashLength + xOffset, 0.);\t\t\t\t\t// move x position\n    float col = 0.;\t\t\t\t\t\t\t\t\t\t\t\t\t// default black\n    if(fract(uv.x) > 0.5) {\t\t\t\t\t\t\t\t\t\t\t// dash    \n        col = ceil(0.15 - distance(0.5, lineProgress));\t\t\t\t// only draw middle portion of line\n    }\n    // fade in/out\n    #ifdef FADES\n        float loopSecs = 2.;\n        float fadeTime = 1.;\n        if(abs(mod(time, loopSecs)) < fadeTime * 2.) {\t\t\t\t// fade in/out for looping purposes\n            col = mix(0., col, abs(-fadeTime + mod(time, loopSecs)));\t\n        }\n    #endif\n\tfragColor = vec4(vec3(col),1.0);\n}",
+     "name": "Image",
+     "description": "",
+     "type": "image"
+    }
+   ]
+  },
+  {
+   "ver": "0.1",
+   "info": {
+    "id": "fdl3RB",
+    "date": "0",
+    "viewed": 0,
+    "name": "Fork Simplicity avaer 096",
+    "description": "Parallax scrolling fractal galaxy.\nInspired by JoshP's Simplicity shader: https://www.shadertoy.com/view/lslGWr",
+    "likes": 0,
+    "published": "Private",
+    "usePreview": 0,
+    "tags": [
+     "fractal"
+    ]
+   },
+   "renderpass": [
+    {
+     "inputs": [],
+     "outputs": [],
+     "code": "//CBS\n//Parallax scrolling fractal galaxy.\n//Inspired by JoshP's Simplicity shader: https://www.shadertoy.com/view/lslGWr\n\n// http://www.fractalforums.com/new-theories-and-research/very-simple-formula-for-fractal-patterns/\nfloat field(in vec3 p,float s) {\n\tfloat strength = 7. + .03 * log(1.e-6 + fract(sin(iTime) * 4373.11));\n\tfloat accum = s/4.;\n\tfloat prev = 0.;\n\tfloat tw = 0.;\n\tfor (int i = 0; i < 26; ++i) {\n\t\tfloat mag = dot(p, p);\n\t\tp = abs(p) / mag + vec3(-.5, -.4, -1.5);\n\t\tfloat w = exp(-float(i) / 7.);\n\t\taccum += w * exp(-strength * pow(abs(mag - prev), 2.2));\n\t\ttw += w;\n\t\tprev = mag;\n\t}\n\treturn max(0., 5. * accum / tw - .7);\n}\n\n// Less iterations for second layer\nfloat field2(in vec3 p, float s) {\n\tfloat strength = 7. + .03 * log(1.e-6 + fract(sin(iTime) * 4373.11));\n\tfloat accum = s/4.;\n\tfloat prev = 0.;\n\tfloat tw = 0.;\n\tfor (int i = 0; i < 18; ++i) {\n\t\tfloat mag = dot(p, p);\n\t\tp = abs(p) / mag + vec3(-.5, -.4, -1.5);\n\t\tfloat w = exp(-float(i) / 7.);\n\t\taccum += w * exp(-strength * pow(abs(mag - prev), 2.2));\n\t\ttw += w;\n\t\tprev = mag;\n\t}\n\treturn max(0., 5. * accum / tw - .7);\n}\n\nvec3 nrand3( vec2 co )\n{\n\tvec3 a = fract( cos( co.x*8.3e-3 + co.y )*vec3(1.3e5, 4.7e5, 2.9e5) );\n\tvec3 b = fract( sin( co.x*0.3e-3 + co.y )*vec3(8.1e5, 1.0e5, 0.1e5) );\n\tvec3 c = mix(a, b, 0.5);\n\treturn c;\n}\n\n\nvoid mainImage( out vec4 fragColor, in vec2 fragCoord ) {\n    vec2 uv = 2. * fragCoord.xy / iResolution.xy - 1.;\n\tvec2 uvs = uv * iResolution.xy / max(iResolution.x, iResolution.y);\n\tvec3 p = vec3(uvs / 4., 0) + vec3(1., -1.3, 0.);\n\tp += .2 * vec3(sin(iTime / 16.), sin(iTime / 12.),  sin(iTime / 128.));\n\t\n\tfloat freqs[4];\n\t//Sound\n\tfreqs[0] = 0.5;\n\tfreqs[1] = 0.5;\n\tfreqs[2] = 0.5;\n\tfreqs[3] = 0.5;\n\n\tfloat t = field(p,freqs[2]);\n\tfloat v = (1. - exp((abs(uv.x) - 1.) * 6.)) * (1. - exp((abs(uv.y) - 1.) * 6.));\n\t\n    //Second Layer\n\tvec3 p2 = vec3(uvs / (4.+sin(iTime*0.11)*0.2+0.2+sin(iTime*0.15)*0.3+0.4), 1.5) + vec3(2., -1.3, -1.);\n\tp2 += 0.25 * vec3(sin(iTime / 16.), sin(iTime / 12.),  sin(iTime / 128.));\n\tfloat t2 = field2(p2,freqs[3]);\n\tvec4 c2 = mix(.4, 1., v) * vec4(1.3 * t2 * t2 * t2 ,1.8  * t2 * t2 , t2* freqs[0], t2);\n\t\n\t\n\t//Let's add some stars\n\t//Thanks to http://glsl.heroku.com/e#6904.0\n\tvec2 seed = p.xy * 2.0;\t\n\tseed = floor(seed * iResolution.x);\n\tvec3 rnd = nrand3( seed );\n\tvec4 starcolor = vec4(pow(rnd.y,40.0));\n\t\n\t//Second Layer\n\tvec2 seed2 = p2.xy * 2.0;\n\tseed2 = floor(seed2 * iResolution.x);\n\tvec3 rnd2 = nrand3( seed2 );\n\tstarcolor += vec4(pow(rnd2.y,40.0));\n\t\n\tfragColor = mix(freqs[3]-.3, 1., v) * vec4(1.5*freqs[2] * t * t* t , 1.2*freqs[1] * t * t, freqs[3]*t, 1.0)+c2+starcolor;\n}",
      "name": "Image",
      "description": "",
      "type": "image"
@@ -969,6 +1227,54 @@
   {
    "ver": "0.1",
    "info": {
+    "id": "sss3RX",
+    "date": "0",
+    "viewed": 0,
+    "name": "Fork V Pathogen avaer 204",
+    "description": "V For Vendetta - Pathogen Path To Power\n\nAdapted from Protean clouds Has been Shader of the Week!\nCreated by nimitz in 2019-05",
+    "likes": 0,
+    "published": "Private",
+    "usePreview": 0,
+    "tags": [
+     "3d",
+     "fast",
+     "volumetric"
+    ]
+   },
+   "renderpass": [
+    {
+     "inputs": [
+      {
+       "id": "4df3zn",
+       "filepath": "/media/a/3405e48f74815c7baa49133bdc835142948381fbe003ad2f12f5087715731153.ogv",
+       "type": "video",
+       "channel": 0,
+       "sampler": {
+        "filter": "linear",
+        "wrap": "clamp",
+        "vflip": "true",
+        "srgb": "false",
+        "internal": "byte"
+       },
+       "published": 1
+      }
+     ],
+     "outputs": [
+      {
+       "id": "4dfGRr",
+       "channel": 0
+      }
+     ],
+     "code": "// Protean clouds by nimitz (twitter: @stormoid)\n// https://www.shadertoy.com/view/3l23Rh\n// License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License\n// Contact the author for other licensing options\n\n/*\n\tTechnical details:\n\n\tThe main volume noise is generated from a deformed periodic grid, which can produce\n\ta large range of noise-like patterns at very cheap evalutation cost. Allowing for multiple\n\tfetches of volume gradient computation for improved lighting.\n\n\tTo further accelerate marching, since the volume is smooth, more than half the the density\n\tinformation isn't used to rendering or shading but only as an underlying volume\tdistance to \n\tdetermine dynamic step size, by carefully selecting an equation\t(polynomial for speed) to \n\tstep as a function of overall density (not necessarialy rendered) the visual results can be \n\tthe\tsame as a naive implementation with ~40% increase in rendering performance.\n\n\tSince the dynamic marching step size is even less uniform due to steps not being rendered at all\n\tthe fog is evaluated as the difference of the fog integral at each rendered step.\n\n*/\n\nmat2 rot(in float a){float c = cos(a), s = sin(a);return mat2(c,s,-s,c);}\nconst mat3 m3 = mat3(0.33338, 0.56034, -0.71817, -0.87887, 0.32651, -0.15323, 0.15162, 0.69596, 0.61339)*1.93;\nfloat mag2(vec2 p){return dot(p,p);}\nfloat linstep(in float mn, in float mx, in float x){ return clamp((x - mn)/(mx - mn), 0., 1.); }\nfloat prm1 = 0.;\nvec2 bsMo = vec2(0);\n\nvec2 disp(float t){ return vec2(sin(t*0.22)*1., cos(t*0.175)*1.)*2.; }\n\nvec2 map(vec3 p)\n{\n    vec3 p2 = p;\n    p2.xy -= disp(p.z).xy;\n    p.xy *= rot(sin(p.z+iTime)*(0.1 + prm1*0.05) + iTime*0.09);\n    float cl = mag2(p2.xy);\n    float d = 0.;\n    p *= .61;\n    float z = 1.;\n    float trk = 1.;\n    float dspAmp = 0.1 + prm1*0.2;\n    for(int i = 0; i < 5; i++)\n    {\n\t\tp += sin(p.zxy*0.75*trk + iTime*trk*.8)*dspAmp;\n        d -= abs(dot(cos(p), sin(p.yzx))*z);\n        z *= 0.57;\n        trk *= 1.4;\n        p = p*m3;\n    }\n    d = abs(d + prm1*3.)+ prm1*.3 - 2.5 + bsMo.y;\n    return vec2(d + cl*.2 + 0.25, cl);\n}\n\nvec4 render( in vec3 ro, in vec3 rd, float time )\n{\n\tvec4 rez = vec4(0);\n    const float ldst = 8.;\n\tvec3 lpos = vec3(disp(time + ldst)*0.5, time + ldst);\n\tfloat t = 1.5;\n\tfloat fogT = 0.;\n\tfor(int i=0; i<130; i++)\n\t{\n\t\tif(rez.a > 0.99)break;\n\n\t\tvec3 pos = ro + t*rd;\n        vec2 mpv = map(pos);\n\t\tfloat den = clamp(mpv.x-0.3,0.,1.)*1.12;\n\t\tfloat dn = clamp((mpv.x + 2.),0.,3.);\n        \n\t\tvec4 col = vec4(0);\n        if (mpv.x > 0.6)\n        {\n        \n            col = vec4(sin(vec3(5.,0.4,0.2) + mpv.y*0.1 +sin(pos.z*0.4)*0.5 + 1.8)*0.5 + 0.5,0.08);\n            col *= den*den*den;\n\t\t\tcol.rgb *= linstep(4.,-2.5, mpv.x)*2.3;\n            float dif =  clamp((den - map(pos+.8).x)/9., 0.001, 1. );\n            dif += clamp((den - map(pos+.35).x)/2.5, 0.001, 1. );\n            col.xyz *= den*(vec3(0.005,.045,.075) + 1.5*vec3(0.033,0.07,0.03)*dif);\n        }\n\t\t\n\t\tfloat fogC = exp(t*0.2 - 2.2);\n\t\tcol.rgba += vec4(0.06,0.11,0.11, 0.1)*clamp(fogC-fogT, 0., 1.);\n\t\tfogT = fogC;\n\t\trez = rez + col*(1. - rez.a);\n\t\tt += clamp(0.5 - dn*dn*.05, 0.09, 0.3);\n\t}\n\treturn clamp(rez, 0.0, 1.0);\n}\n\nfloat getsat(vec3 c)\n{\n    float mi = min(min(c.x, c.y), c.z);\n    float ma = max(max(c.x, c.y), c.z);\n    return (ma - mi)/(ma+ 1e-7);\n}\n\n//from my \"Will it blend\" shader (https://www.shadertoy.com/view/lsdGzN)\nvec3 iLerp(in vec3 a, in vec3 b, in float x)\n{\n    vec3 ic = mix(a, b, x) + vec3(1e-6,0.,0.);\n    float sd = abs(getsat(ic) - mix(getsat(a), getsat(b), x));\n    vec3 dir = normalize(vec3(2.*ic.x - ic.y - ic.z, 2.*ic.y - ic.x - ic.z, 2.*ic.z - ic.y - ic.x));\n    float lgt = dot(vec3(1.0), ic);\n    float ff = dot(dir, normalize(ic));\n    ic += 1.5*dir*sd*ff*lgt;\n    return clamp(ic,0.,1.);\n}\n\nvoid mainImage( out vec4 fragColor, in vec2 fragCoord )\n{\t\n    \n\tvec2 q = fragCoord.xy/iResolution.xy;\n    vec2 p = (gl_FragCoord.xy - 0.5*iResolution.xy)/iResolution.y;\n    \n   \n\tfloat fft1 = (texture(iChannel0, p).xyz,1.0);\n \n    float fft = 0.15 + 1.116 *(((texture( iChannel0, vec2(p.y+5.0, 5.0) ).x)) * 3.51);\n    \n    bsMo = (iMouse.xy - 0.5*iResolution.xy)/iResolution.y;\n    \n    float time = iTime*3.;\n    vec3 ro = vec3(0,0,time);\n    \n    ro += vec3(sin(iTime)*0.5,sin(iTime*1.)*0.,0);\n        \n    float dspAmp = .85;\n    ro.xy += disp(ro.z)*dspAmp;\n    float tgtDst = 3.5;\n    \n    vec3 target = normalize(ro - vec3(disp(time + tgtDst)*dspAmp, time + tgtDst));\n    ro.x -= bsMo.x*2.;\n    vec3 rightdir = normalize(cross(target, vec3(0,1,0)));\n    vec3 updir = normalize(cross(rightdir, target));\n    rightdir = normalize(cross(updir, target));\n\tvec3 rd=normalize((p.x*rightdir + p.y*updir)*1. - target);\n    rd.xy *= rot(-disp(time + 3.5).x*0.2 + bsMo.x);\n    prm1 = smoothstep(-0.4, 0.4,sin(iTime*0.3));\n    // ro += vec3(0, 0, time*2.);\n    // rd.y += 0.1;\n    // rd = normalize(rd);\n\tvec4 scn = render(ro, rd, time);\n\t\t\n    vec3 col = scn.rgb*fft1*.865;\n    col = iLerp(col.bgr, col.rgb*fft, clamp(1.-prm1,0.05,1.));\n    \n    col = pow(col, vec3(.55,0.65,0.6))*vec3(1.,.97,.9);\n\n    col *= pow( fft*16.0*q.x*q.y*(1.0-q.x)*(1.0-q.y), 0.12)*0.7+0.3; //Vign\n    \n\tfragColor = vec4( col, 1.0 );\n}",
+     "name": "Image",
+     "description": "",
+     "type": "image"
+    }
+   ]
+  },
+  {
+   "ver": "0.1",
+   "info": {
     "id": "7slGz7",
     "date": "0",
     "viewed": 0,
@@ -1143,6 +1449,35 @@
      ],
      "outputs": [],
      "code": "// Created by Pol Jeremias - pol/2015\n// License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.\n\n#define SOUND_MULTIPLIER 1.0\n\nfloat sin01(float v){ return 0.5 + 0.5 * sin(v); }\n\nvoid mainImage( out vec4 fragColor, in vec2 fragCoord )\n{\n\tvec2 uv = fragCoord.xy / iResolution.xy;\n    uv -= vec2(0.5);\n\tuv.x *= iResolution.x / iResolution.y;\n    \n    float a = atan( uv.y, uv.x );\n    float r = length( uv );\n    \n    //\n    // Draw the white eye\n    //\n    float reactBase = SOUND_MULTIPLIER * texture(iChannel0, vec2(0.1, 0.0) ).x;\n    float nr = r + reactBase * 0.06 * sin01(a * 2.0 +iTime);\n    float c = 1.0 - smoothstep(0.04, 0.07, nr);\n\t\n    //\n    // Draw the manypus\n    //\n    uv = (fragCoord.xy / iResolution.xy) * 2.0 - 1.0;\n    const float it = 10.0;\n    float c1 = 0.0;\n    for( float i = 0.0 ; i < it ; i += 1.0 )\n    {\n        float i01 = i / it;\n        float rnd = texture( iChannel1, vec2(i01)).x;\n        float react = SOUND_MULTIPLIER * texture(iChannel0, vec2(i01, 0.0) ).x;\n        \n        float a = rnd * 3.1415;\n        uv = uv * mat2( cos(a), -sin(a), sin(a), cos(a) );\n        \n        // Calculate the line\n        float t= 0.3 * abs(1.0 / sin( uv.x * 3.1415 + sin(uv.y * 30.0 * rnd +iTime) * 0.13)) - 1.0;\n        \n        // Kill repetition in the x axis\n        t *= 1.0 - smoothstep(0.3, 0.53, abs(uv.x));\n        \n        // Kill part of the y axis so it looks like a line with a beginning and end\n        float base = 0.1 + react;\n        rnd *= 0.2;\n        t *= 1.0 - smoothstep(base + rnd, base + 0.3 + rnd, abs(uv.y));\n        \n        c1 += t;\n    }\n    \n    //\n    // Calculat the final color\n    //\n    c1 = clamp(c1, 0.0, 1.0);\n    vec3 col = mix(vec3(0.95,0.95,0.0), vec3(0.0), c1 - c);\n    col += c;\n\tfragColor = vec4( col, 1.0);\n}",
+     "name": "Image",
+     "description": "",
+     "type": "image"
+    }
+   ]
+  },
+  {
+   "ver": "0.1",
+   "info": {
+    "id": "7dXGzf",
+    "date": "0",
+    "viewed": 0,
+    "name": "Fork bipolar co avaer 338",
+    "description": "just a logarithmic zoom with a spiral twist and a division by zero in the complex number plane. 12 flower calculations, the rest is mirrored.",
+    "likes": 0,
+    "published": "Private",
+    "usePreview": 0,
+    "tags": [
+     "2d",
+     "complexpolynomials",
+     "polarcoordinates",
+     "logarithmiczoom"
+    ]
+   },
+   "renderpass": [
+    {
+     "inputs": [],
+     "outputs": [],
+     "code": "#define pi 3.141592653589793238462643383279\n#define pi_inv 0.318309886183790671537767526745\n#define pi2_inv 0.159154943091895335768883763372\n\nvec2 complex_mul(vec2 factorA, vec2 factorB){\n  return vec2( factorA.x*factorB.x - factorA.y*factorB.y, factorA.x*factorB.y + factorA.y*factorB.x);\n}\n\nvec2 complex_div(vec2 numerator, vec2 denominator){\n   return vec2( numerator.x*denominator.x + numerator.y*denominator.y,\n                numerator.y*denominator.x - numerator.x*denominator.y)/\n          vec2(denominator.x*denominator.x + denominator.y*denominator.y);\n}\n\nvec2 wrap_flip(vec2 uv){\n\treturn vec2(1.)-abs(fract(uv*.5)*2.-1.);\n}\n \nfloat border(vec2 domain, float thickness){\n   vec2 uv = fract(domain-vec2(0.5));\n   uv = min(uv,1.-uv)*2.;\n   return clamp(max(uv.x,uv.y)-1.+thickness,0.,1.)/(thickness);\n}\n\nfloat circle(vec2 uv, vec2 aspect, float scale){\n\treturn clamp( 1. - length((uv-0.5)*aspect*scale), 0., 1.);\n}\n\nfloat sigmoid(float x) {\n\treturn 2./(1. + exp2(-x)) - 1.;\n}\n\nfloat smoothcircle(vec2 uv, vec2 center, vec2 aspect, float radius, float sharpness){\n\treturn 0.5 - sigmoid( ( length( (uv - center) * aspect) - radius) * sharpness) * 0.5;\n}\n\nfloat lum(vec3 color){\n\treturn dot(vec3(0.30, 0.59, 0.11), color);\n}\n\nvec2 spiralzoom(vec2 domain, vec2 center, float n, float spiral_factor, float zoom_factor, vec2 pos){\n\tvec2 uv = domain - center;\n\tfloat angle = atan(uv.y, uv.x);\n\tfloat d = length(uv);\n\treturn vec2( angle*n*pi2_inv + log(d)*spiral_factor, -log(d)*zoom_factor) + pos;\n}\n\nvec2 mobius(vec2 domain, vec2 zero_pos, vec2 asymptote_pos){\n\treturn complex_div( domain - zero_pos, domain - asymptote_pos);\n}\n\n\nvec3 gear(vec2 domain, float phase, vec2 pos){\n\tfloat angle = atan(domain.y - pos.y, domain.x - pos.x);\n\tfloat d = 0.2 + sin((angle + phase) * 10.)*0.1;\n\tvec3 col = smoothcircle(domain, pos, vec2(1), d, 128.)*vec3(1.);\n\tcol = mix(col, vec3(1,0.8,0), smoothcircle(domain, pos, vec2(1), 0.05, 256.));\n\treturn col;\n}\n\nvec3 geartile(vec2 domain, float phase){\n\tdomain = fract(domain);\n\treturn \n\t\tgear(domain, -phase, vec2(-0.25,0.25)) + \n\t\tgear(domain, phase, vec2(-0.25,0.75)) + \n\t\tgear(domain, phase, vec2(1.25,0.25)) + \n\t\tgear(domain,- phase, vec2(1.25,0.75)) + \n\t\tgear(domain, -phase, vec2(0.25,-0.25)) + \n\t\tgear(domain, phase, vec2(0.75,-0.25)) + \n\t\tgear(domain, phase, vec2(0.25,1.25)) + \n\t\tgear(domain, -phase, vec2(0.75,1.25)) + \n\t\tgear(domain, phase, vec2(0.25,0.25)) + \n\t\tgear(domain, -phase, vec2(0.25,0.75)) + \n\t\tgear(domain, -phase, vec2(0.75,0.25)) + \n\t\tgear(domain, phase, vec2(0.75,0.75));\t\t\n}\nvoid mainImage( out vec4 fragColor, in vec2 fragCoord )\n{\n\tvec2 uv = fragCoord.xy / iResolution.xy;\n\t\n\t// aspect-ratio correction\n\tvec2 aspect = vec2(1.,iResolution.y/iResolution.x);\n\tvec2 uv_correct = 0.5 + (uv -0.5)/ aspect.yx;\n\tvec2 mouse_correct = 0.5 + ( iMouse.xy / iResolution.xy - 0.5) / aspect.yx;\n\t\t\n\tfloat phase = iTime*0.5;\n\tfloat dist = 0.75;\n\tvec2 uv_bipolar = mobius(uv_correct, vec2(0.5 - dist*0.5, 0.5), vec2(0.5 + dist*0.5, 0.5));\n\tuv_bipolar = spiralzoom(uv_bipolar, vec2(0.), 5., -0.125*pi, 0.8, vec2(-0.125,0.125)*phase);\n\tuv_bipolar = vec2(-uv_bipolar.y,uv_bipolar.x); // 90Â° rotation \n\n\tvec3 gear = geartile(uv_bipolar, -phase*1.);\n\t\n\tfragColor.xyz = mix( vec3(0), vec3(0.1,0.2,0.4), uv.y);\t\t\n\tfragColor.xyz = mix(fragColor.xyz, vec3(1), gear); // blend\n\tfragColor.w = 1.;\n}",
      "name": "Image",
      "description": "",
      "type": "image"
@@ -1668,6 +2003,39 @@
      "inputs": [],
      "outputs": [],
      "code": "#define P_SUBDIV .2+.2*sin(iTime)\n//#define P_SUBDIV .2\n\nfloat rnd(vec3 v) { return fract(4e4*sin(dot(v,vec3(13.46,41.74,-73.36))+17.34)); }\n    \nvoid mainImage( out vec4 fragColor, vec2 uv )\n{\n    vec2 u, R=iResolution.xy, m=iMouse.xy;\n    if (m.x+m.y<1e-2*R.x) m = R*(.5+.5*sin(.1*iTime+vec2(0,1.6)));\n    uv.x -= 8.*(m.x-R.x/2.);\n    uv /= (1.-m.y/R.y)*4.;\n    \n\tfloat z = R.y;\n    for (int i=0; i<128; i++) {\n        u = floor(uv/z)+.5;\n        if (rnd(vec3(z*u, z)) < P_SUBDIV) break;\n        z /= 2.;\n    }\n    uv = z/2.-abs(uv-z*u);\n    fragColor = min(uv.x,uv.y)<1. ? vec4(0) :\n    \t\t\t// vec4(1); // vec4(z/R.y);\n\t\t\t\t.6+.4*cos(6.28*rnd(vec3(z*u+1.,z))+vec4(0,2.1,-2.1,0));\n}",
+     "name": "Image",
+     "description": "",
+     "type": "image"
+    }
+   ]
+  },
+  {
+   "ver": "0.1",
+   "info": {
+    "id": "7ds3RX",
+    "date": "0",
+    "viewed": 0,
+    "name": "Fork retro frac avaer 947",
+    "description": "old kaliset toying-around reanimated",
+    "likes": 0,
+    "published": "Private",
+    "usePreview": 0,
+    "tags": [
+     "numbers",
+     "kaliset",
+     "magic"
+    ]
+   },
+   "renderpass": [
+    {
+     "inputs": [],
+     "outputs": [
+      {
+       "id": "4dfGRr",
+       "channel": 0
+      }
+     ],
+     "code": "#define TIME (iTime)\n\n// returns average value from kaliset\nvec3 kali_trees(in vec2 uv)\n{\n    uv = uv.yx / 100. - vec2(0.022,0.04);\n    uv.x += 0.001*sin(TIME/33.);\n    uv.y += 0.003*sin(TIME/17.3);\n    vec3 p = vec3(uv, .03);\n    \n    vec3 col = vec3(0.);\n    const int num_iter = 67;\n    for (int i=0; i<num_iter; ++i)\n    {\n        p = abs(p) / dot(p, p);\n        col += exp(-p*22.);\n        p -= vec3(1.+0.005*sin(TIME/11.), 0.585, .03);\n    }\n    col /= float(num_iter);\n    col *= 4.;\n    \n    //col = pow(clamp(col, 0., 1.), vec3(2.));\n    \n    return col;\n}\n\nvec3 kali_stars(in vec2 uv)\n{\n    uv = (uv+vec2(2.,1.)) / 14.;\n    uv.x += sin(TIME/150.);\n    vec3 p = vec3(uv, .03);\n    \n    vec3 col = vec3(0.);\n    const int num_iter = 50;\n    for (int i=0; i<num_iter; ++i)\n    {\n        p = abs(p) / dot(p, p);\n        col += exp(-p*32.);\n        p -= vec3(.285, .409, .874);\n    }\n    col /= float(num_iter);\n    col *= 4.;\n    \n    //col = pow(clamp(col, 0., 1.), vec3(2.));\n    \n    return col;\n}\n\nvoid mainImage( out vec4 fragColor, in vec2 fragCoord )\n{\n\tvec2 suv = fragCoord.xy / iResolution.xy;\n    vec2 uv = (fragCoord.xy - .5*iResolution.xy) / iResolution.y * 2.;\n    \n    vec3 kt = kali_trees(uv);\n\tvec3 ks = kali_stars(uv);\n    \n    vec3 col = mix(vec3(.9,.3+.2*cos(suv.y*8.),.1), vec3(.5,.2+ks.x, 1.), suv.y-ks.z);\n    \n    col *= smoothstep(0.0, .2, kt.y-.6-suv.y*.1);\n    \n    \n    fragColor = vec4(col,1.0);\n}",
      "name": "Image",
      "description": "",
      "type": "image"
